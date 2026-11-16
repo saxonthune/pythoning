@@ -1,4 +1,8 @@
-# Python Interview Prep
+# Pythoning
+
+Practice Python until interview fundamentals feel familiar again. The site is
+focused on coding interview work: modeling data, implementing common patterns,
+and explaining a solution clearly.
 
 ## Quick Start
 
@@ -174,3 +178,10 @@ CASES = [
 
 The harness instantiates a fresh object per trace. Per-op failures print
 individually; a fully-passing trace collapses to one summary line.
+
+## Tests
+
+Run `npm --prefix web run test:all` for state/catalog tests, the production build,
+and browser integration plus real Python execution smoke tests. Install the test
+browser first with `cd web && npx playwright install chromium`.
+See [Testing](docs/testing.md) for individual layers, action sequences, and failure traces.

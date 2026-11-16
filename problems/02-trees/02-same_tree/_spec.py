@@ -19,6 +19,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(p: 'TreeNode | None', q: 'TreeNode | None') -> bool:"
 
+
 CASES = [
     # identical
     ((build_tree([1, 2, 3]),       build_tree([1, 2, 3])),       True),

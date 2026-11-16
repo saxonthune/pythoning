@@ -1,0 +1,59 @@
+/* Base palette and shared dimensions. Components consume semantic roles below. */
+:root {
+  --blue-700: #1c5a86;
+  --blue-800: #16496d;
+  --blue-100: #dde6ee;
+  --ink-900: #191c20;
+  --grey-700: #5f6570;
+  --grey-100: #e5e8ea;
+  --cream-50: #faf7ef;
+  --outer-border-width: 2px;
+  --outer-border: color-mix(in srgb, var(--border) 55%, var(--article-bg));
+  --radius-control: 6px;
+  --radius-panel: 12px;
+  --space-2: .5rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+}
+:root, :root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #e6e5dd; --surface: #f9f9f5; --text: #242b28; --muted: #626d66;
+  --border: #d0d6d0; --border-strong: #aebbb3; --accent: var(--blue-700);
+  --control-text: var(--text); --editor-text: var(--text); --btn-border: var(--blue-700);
+  --btn-fg: #fff; --btn-bg: var(--blue-700); --btn-bg-hover: var(--blue-800);
+  --article-bg: #f5f4ee; --config-bg: #eeeee7;
+  --chrome: #e9ede7; --field: #fafbf8; --document: #eaf0eb;
+  --page-background: linear-gradient(170deg, #dde6ee 0%, #e6e5dd 46%, #efe5d3 100%);
+  --syntax-keyword: #75409a; --syntax-function: #245d88; --syntax-type: #805514;
+  --syntax-string: #376c46; --syntax-literal: #88502d; --syntax-comment: #657064;
+  --editor-bg: #fcfcf9; --editor-gutter: #fcfcf9; --editor-active-line: #eef1eb;
+  --editor-chrome: #ecefe9; --editor-border: #cdd4ca;
+  --editor-line-number: #7b838c; --editor-hint: #8b99a4; --editor-selection: #cddfeb;
+}
+/* Coordinated neutral surfaces; preserve the accepted page gradient and blue action colors. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #292922; --surface: #383e39; --text: #eeeae0; --muted: #b4b9ac;
+  --control-text: #e2e6dc; --editor-text: #e6e7dc;
+  --border: #444e46; --border-strong: #627067; --accent: rgb(147, 188, 210);
+  --btn-fg: rgb(252, 242, 224); --btn-bg: rgb(38, 73, 95); --btn-border: rgb(61, 116, 152); --btn-bg-hover: #2c6079;
+  --article-bg: #272b27; --config-bg: #2b302b;
+  --chrome: #303730; --field: #242b25; --document: #303832;
+  --page-background: linear-gradient(170deg, #262b28 0%, #29291f 46%, #3c301a 100%);
+  --syntax-keyword: #d5b1e8; --syntax-function: #a4cce5; --syntax-type: #e0c58a;
+  --syntax-string: #b5d09b; --syntax-literal: #e6b28e; --syntax-comment: #a7ad9a;
+  --editor-bg: #2d322d; --editor-gutter: #2d322d; --editor-active-line: #373e36;
+  --editor-chrome: #333a32; --editor-border: #465044;
+  --editor-line-number: rgb(165, 153, 133); --editor-hint: #b2a68d; --editor-selection: #334d57;
+}
+/* Compatibility roles for existing problem pages. */
+:root {
+  --desc-bg: var(--field); --row-hover: var(--document); --banner-bg: var(--surface);
+  --pane-chrome: var(--chrome); --pane-chrome-border: var(--border); --pane-chrome-text: var(--muted);
+  --output-bg: var(--surface); --output-fg: var(--text);
+  --ghost-bg-hover: var(--document); --ghost-border: var(--border); --ghost-text: var(--text);
+}
+
+
+/* Microgames alternates article and document surfaces by containment. */
+:root { --microgames-workspace: var(--article-bg); }

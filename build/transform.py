@@ -4,7 +4,7 @@ Usage:
     python build/transform.py
 
 Output:
-    web/public/problems.json
+    web/src/data/problems.json     # imported at build time by the site
     web/public/web_harness.py
     web/public/utils.py            # copy of utils/__init__.py for Pyodide FS
 """
@@ -24,6 +24,9 @@ from build.encoders import encode  # noqa: E402
 
 PROBLEMS_DIR = os.path.join(ROOT, "problems")
 WEB_PUBLIC = os.path.join(ROOT, "web", "public")
+# problems.json is imported by the site at build time, not fetched at runtime, so
+# it belongs in src/ — Vite warns about importing anything out of public/.
+WEB_SRC_DATA = os.path.join(ROOT, "web", "src", "data")
 
 
 def _load_spec(spec_path: str):
@@ -136,8 +139,9 @@ def collect() -> list[dict]:
 def main():
     problems = collect()
     os.makedirs(WEB_PUBLIC, exist_ok=True)
+    os.makedirs(WEB_SRC_DATA, exist_ok=True)
 
-    out_path = os.path.join(WEB_PUBLIC, "problems.json")
+    out_path = os.path.join(WEB_SRC_DATA, "problems.json")
     with open(out_path, "w") as f:
         json.dump(problems, f, ensure_ascii=False, indent=2)
     print(f"wrote {out_path} ({len(problems)} problems)")

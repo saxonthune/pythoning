@@ -1,4 +1,5 @@
 ---
+import SiteHeader from '../../components/SiteHeader.astro';
 import '../../styles/global.css';
 import { problems, idToSlug } from '../../lib/problems.ts';
 import { THEME_INIT } from '../../lib/theme.ts';
@@ -21,10 +22,7 @@ const problemJson = JSON.stringify(problem);
   </head>
   <body>
     <main>
-      <nav class="back">
-        <a href={base}>← all problems</a>
-        <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme">☾</button>
-      </nav>
+      <SiteHeader selected="problems" />
 
       <header class="problem-header">
         <h1>{problem.title}</h1>
@@ -49,19 +47,12 @@ const problemJson = JSON.stringify(problem);
       <section>
         <div class="pane">
           <div class="pane-label">
-            <span>solution.py</span>
+            <span class="filename">solution.py</span>
             <div class="toolbar">
               <span id="status" class="status"></span>
               <button id="reset" class="btn-ghost">Reset</button>
               <button id="run" class="btn-primary">Run</button>
             </div>
-          </div>
-          <div id="banner" hidden>
-            <span>Skeleton has changed since you last saved.</span>
-            <span class="banner-actions">
-              <button id="keep" class="btn-ghost">Keep my code</button>
-              <button id="adopt" class="btn-ghost">Adopt new</button>
-            </span>
           </div>
           <div id="editor"></div>
         </div>
@@ -78,11 +69,6 @@ const problemJson = JSON.stringify(problem);
     <script id="problem-data" type="application/json" set:html={problemJson}></script>
 
     <script>
-      import { attachThemeToggle } from '../../lib/theme.ts';
-      attachThemeToggle('theme-toggle');
-    </script>
-
-    <script>
       import { EditorState } from '@codemirror/state';
       import { EditorView, basicSetup } from 'codemirror';
       import { keymap } from '@codemirror/view';
@@ -90,22 +76,13 @@ const problemJson = JSON.stringify(problem);
       import { indentUnit } from '@codemirror/language';
       import { python } from '@codemirror/lang-python';
       import { oneDark } from '@codemirror/theme-one-dark';
-      import { loadSolution, saveSolution, clearSolution, debounce } from '../../lib/storage.ts';
+      import {
+        loadSolution,
+        saveSolution,
+        clearSolution,
+        debounce,
+      } from '../../lib/storage.ts';
       import { runProblem, ensurePyodide } from '../../lib/pyodide-runner.ts';
-
-      // Pyodide runs in a Web Worker (see public/pyodide.worker.js), so
-      // warming up doesn't block the main thread.
-      let pyodideReady = false;
-      const statusInit = document.getElementById('status')!;
-      statusInit.textContent = 'Loading Python…';
-      ensurePyodide()
-        .then(() => {
-          pyodideReady = true;
-          if (statusInit.textContent === 'Loading Python…') statusInit.textContent = '';
-        })
-        .catch(() => {
-          statusInit.textContent = 'Python failed to load';
-        });
       import type { Problem } from '../../lib/problems.ts';
 
       const problem = JSON.parse(
@@ -115,18 +92,30 @@ const problemJson = JSON.stringify(problem);
       const editorEl = document.getElementById('editor')!;
       const output = document.getElementById('output')!;
       const statusEl = document.getElementById('status')!;
-      const banner = document.getElementById('banner') as HTMLDivElement;
       const runBtn = document.getElementById('run') as HTMLButtonElement;
       const resetBtn = document.getElementById('reset') as HTMLButtonElement;
-      const keepBtn = document.getElementById('keep') as HTMLButtonElement | null;
-      const adoptBtn = document.getElementById('adopt') as HTMLButtonElement | null;
+      const currentSkeleton = problem.skeleton;
 
-      const { code, skeletonChanged } = await loadSolution(problem.id, problem.skeleton);
-      if (skeletonChanged) banner.hidden = false;
+      let pyodideReady = false;
+      let pyodideStarted = false;
+      function warmPyodide() {
+        if (pyodideStarted) return;
+        pyodideStarted = true;
+        statusEl.textContent = 'Loading Python…';
+        ensurePyodide()
+          .then(() => {
+            pyodideReady = true;
+            if (statusEl.textContent === 'Loading Python…') statusEl.textContent = '';
+          })
+          .catch(() => {
+            statusEl.textContent = 'Python failed to load';
+          });
+      }
+      warmPyodide();
 
       const view = new EditorView({
         state: EditorState.create({
-          doc: code,
+          doc: loadSolution(problem.id, currentSkeleton),
           extensions: [
             basicSetup,
             keymap.of([indentWithTab]),
@@ -139,7 +128,7 @@ const problemJson = JSON.stringify(problem);
       });
 
       const persist = debounce(() => {
-        void saveSolution(problem.id, view.state.doc.toString(), problem.skeleton);
+        saveSolution(problem.id, view.state.doc.toString(), currentSkeleton);
       }, 500);
       view.dom.addEventListener('keyup', persist);
       view.dom.addEventListener('input', persist);
@@ -150,23 +139,12 @@ const problemJson = JSON.stringify(problem);
 
       resetBtn.addEventListener('click', () => {
         if (!confirm('Reset editor to the original skeleton? Your edits will be lost.')) return;
-        setCode(problem.skeleton);
+        setCode(currentSkeleton);
         clearSolution(problem.id);
-        banner.hidden = true;
-      });
-      keepBtn?.addEventListener('click', async () => {
-        await saveSolution(problem.id, view.state.doc.toString(), problem.skeleton);
-        banner.hidden = true;
-      });
-      adoptBtn?.addEventListener('click', () => {
-        setCode(problem.skeleton);
-        clearSolution(problem.id);
-        banner.hidden = true;
       });
 
       runBtn.addEventListener('click', async () => {
         runBtn.disabled = true;
-        statusEl.textContent = pyodideReady ? 'Running…' : 'Loading Python…';
         output.textContent = '';
         const payload =
           problem.kind === 'function'
@@ -174,12 +152,10 @@ const problemJson = JSON.stringify(problem);
             : problem.kind === 'class'
               ? { cases: problem.cases, class_name: problem.class_name }
               : { cases: problem.cases, function_names: problem.function_names };
+        const userCode = view.state.doc.toString();
         try {
-          const { output: out } = await runProblem({
-            kind: problem.kind,
-            payload,
-            userCode: view.state.doc.toString(),
-          });
+          statusEl.textContent = pyodideReady ? 'Running…' : 'Loading Python…';
+          const { output: out } = await runProblem({ kind: problem.kind, payload, userCode });
           output.textContent = out || '(no output)';
         } catch (e) {
           output.textContent = String(e);
@@ -251,6 +227,23 @@ const problemJson = JSON.stringify(problem);
         color: #8b949e;
       }
       .toolbar { display: flex; gap: .4rem; align-items: center; }
+
+      .lang-tabs { display: flex; gap: .25rem; align-items: center; }
+      .lang-tab {
+        background: transparent;
+        border: 1px solid transparent;
+        color: #8b949e;
+        border-radius: 5px;
+        padding: .15rem .55rem;
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .lang-tab:hover { color: #c9d1d9; }
+      .lang-tab.active {
+        color: #fff;
+        background: #0d1117;
+        border-color: #30363d;
+      }
       .status { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 
       button { cursor: pointer; font-family: inherit; }
@@ -274,18 +267,6 @@ const problemJson = JSON.stringify(problem);
         font-size: 12px;
       }
       .btn-ghost:hover { background: #30363d; }
-
-      #banner {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        padding: .5rem .75rem;
-        background: #fff8e1;
-        border-bottom: 1px solid var(--border);
-        font-size: 13px;
-      }
-      .banner-actions { display: flex; gap: .4rem; }
 
       #editor { height: 480px; }
       #editor .cm-editor { height: 100%; }

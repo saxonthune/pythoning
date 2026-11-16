@@ -1,0 +1,13 @@
+<section class="results" id="round-results" aria-labelledby="result-label" data-state="idle">
+  <div class="result-status" role="status"><span id="result-label">Challenge Incomplete.</span></div>
+  <div class="result-actions"><a id="skip-challenge" href="#round-heading">skip this challenge</a><button id="next-round" disabled>Next Round</button></div>
+</section>
+<style>
+  .results { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1rem; margin-top: 1rem; border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--document); }
+  #result-label { font-size: 18px; font-weight: 600; }
+  .result-status { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; }
+  .result-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; }
+  #skip-challenge { font-size: 14px; }
+  [hidden] { display: none; }
+  .results[data-state="passed"] #next-round { background: var(--btn-bg); border-color: var(--btn-border); color: var(--btn-fg); }
+</style>

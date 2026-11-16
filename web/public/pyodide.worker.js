@@ -52,7 +52,7 @@ import web_harness
 
 payload = __payload__.to_py() if hasattr(__payload__, "to_py") else __payload__
 
-user_ns = {}
+user_ns = {"__name__": "__main__"}
 try:
     exec(compile(__user_code__, "<solution>", "exec"), user_ns)
 except Exception:

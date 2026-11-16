@@ -1,0 +1,17 @@
+---
+import SiteHeader from '../../components/SiteHeader.astro';
+import '../../styles/global.css';
+import Footer from '../../components/Footer.astro';
+import Microgames from '../../components/Microgames.astro';
+import { THEME_INIT } from '../../lib/theme';
+export function getStaticPaths() { return [{params: {codes: undefined}}]; }
+---
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Microgames · Pythoning</title><script is:inline set:html={THEME_INIT}></script></head><body><main><SiteHeader selected="microgames" /><article class="practice-article"><Microgames /></article><Footer /></main></body></html>
+<style is:global>body {max-width: 1000px; padding: 1.5rem;}</style>
+<style>nav {display:flex;align-items:center;justify-content:space-between;}</style>
+
+<style>
+  .practice-article { margin-top: 1.5rem; padding: clamp(1rem, 3vw, 2rem); background: var(--article-bg); border: var(--outer-border-width) solid var(--outer-border); border-radius: 16px; }
+  .practice-article :global(.microgames) { margin: 0; }
+  @media (max-width: 550px) { .practice-article { padding: 1rem; } }
+</style>

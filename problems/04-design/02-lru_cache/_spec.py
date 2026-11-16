@@ -42,6 +42,7 @@ SIGNATURE = '''class LRUCache:
     def put(self, key: int, value: int) -> None:
         pass'''
 
+
 CASES = [
     # canonical LeetCode example
     ((2,), [

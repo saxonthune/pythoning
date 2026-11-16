@@ -36,6 +36,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(s: str) -> bool:"
 
+
 CASES = [
     # simplest valid pair
     ("()", True),

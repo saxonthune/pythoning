@@ -43,6 +43,7 @@ SIGNATURE = '''class MinStack:
     def getMin(self) -> int:
         pass'''
 
+
 # Each trace: (init_args_tuple, [(method, args, expected), ...])
 # args follows function-harness convention: tuple => splat, single value => wrap.
 CASES = [

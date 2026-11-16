@@ -36,6 +36,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(m: list[list[int]]) -> int:"
 
+
 CASES = [
     # canonical: two components
     ([[1, 1, 0],

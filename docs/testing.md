@@ -75,3 +75,13 @@ random state-machine sequences are not yet covered. Add a focused regression
 trace for each reported bug before expanding into generated sequences. A future
 state model should distinguish document, selection, focus, assistance, execution,
 and completion state rather than combining them into a single enum.
+
+## Production Routing
+
+The deploy workflow checks the live homepage, Microgames root, and two seeded
+challenge URLs with `web/tests/production-routes.mjs`. It verifies the release
+version and Microgames markup so Cloudflare's homepage SPA fallback cannot
+silently pass as a successful challenge response. The same script can target a
+local `wrangler pages dev web/dist` server after building. Cloudflare must proxy
+to the clean `/microgames/` path: targeting `/microgames/index.html` is rejected
+as a loop by its redirect normalization.

@@ -45,6 +45,7 @@ SIGNATURE = '''class Logger:
     def shouldPrintMessage(self, timestamp: int, message: str) -> bool:
         pass'''
 
+
 CASES = [
     # canonical LeetCode example
     ((), [

@@ -1,0 +1,16 @@
+<section class="round" aria-labelledby="round-heading">
+  <header class="round-header">
+    <h2 id="round-heading" tabindex="-1"></h2>
+
+  </header>
+  <p id="micro-prompt" aria-live="polite"></p>
+</section>
+<style>
+  .round { background: var(--document); border: 1px solid var(--border); border-radius: var(--radius-panel); padding: var(--space-4); margin-bottom: var(--space-4); }
+  .round-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); }
+  h2 { margin: 0; font-size: 18px; line-height: 1.4; font-weight: 600; }
+  .round-controls { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  #micro-prompt { margin: 0; line-height: 1.75; }
+  #micro-prompt :global(code) { font: .9em ui-monospace, SFMono-Regular, Consolas, monospace; background: color-mix(in srgb, var(--text) 7%, transparent); padding: .12em .3em; border-radius: 4px; }
+  @media (max-width: 450px) { .round-header { align-items: flex-start; } .round-controls { width: 100%; } }
+</style>

@@ -26,6 +26,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(graph: dict[int, list[int]], start: int) -> list[int]:"
 
+
 CASES = [
     # single node
     (({0: []}, 0), [0]),

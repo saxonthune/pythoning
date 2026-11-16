@@ -32,7 +32,7 @@ export interface MultiProblem extends BaseProblem {
 
 export type Problem = FunctionProblem | ClassProblem | MultiProblem;
 
-import problemsJson from '../../public/problems.json';
+import problemsJson from '../data/problems.json';
 
 export const problems: Problem[] = problemsJson as Problem[];
 

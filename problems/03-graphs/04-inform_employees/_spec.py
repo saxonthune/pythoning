@@ -56,6 +56,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(employees: list[tuple[int, int, int]]) -> int:"
 
+
 CASES = [
     # CEO only, no one to inform
     ([(0, -1, 0)], 0),

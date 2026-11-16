@@ -31,6 +31,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(s: str) -> int:"
 
+
 CASES = [
     # canonical: first char is unique
     ("leetcode", 0),

@@ -27,6 +27,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(root: 'TreeNode | None') -> list[int]:"
 
+
 # build_tree takes LeetCode-style level-order input (None for missing children)
 CASES = [
     (build_tree([1, 2, 3, 4, 5]),         [4, 5, 2, 3, 1]),

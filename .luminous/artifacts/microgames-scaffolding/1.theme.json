@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "styles": {
+    "definition": {
+      "label": "Trusted game definition",
+      "light": {
+        "fill": "#e8dff0",
+        "stroke": "#967ca5"
+      },
+      "dark": {
+        "fill": "#42354c",
+        "stroke": "#b49bc4"
+      }
+    },
+    "module": {
+      "label": "Executing module",
+      "light": {
+        "fill": "#dce9de",
+        "stroke": "#799781"
+      },
+      "dark": {
+        "fill": "#2e4535",
+        "stroke": "#8bb797"
+      }
+    },
+    "data": {
+      "label": "Data contract",
+      "light": {
+        "fill": "#dce8f0",
+        "stroke": "#7b96ab"
+      },
+      "dark": {
+        "fill": "#2f4050",
+        "stroke": "#91b6d1"
+      }
+    }
+  }
+}

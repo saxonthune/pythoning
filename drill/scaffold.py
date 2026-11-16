@@ -22,6 +22,11 @@ import os
 import re
 import sys
 
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+
 
 BOOTSTRAP = '''import sys, os
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -98,6 +103,23 @@ def _render_single(signature: str) -> str:
     return "\n".join(out)
 
 
+def _render_class(signature: str, class_name: str) -> str:
+    out = [
+        BOOTSTRAP,
+        "from drill.harness import run_class",
+        "from _spec import CASES",
+        "",
+        "",
+        signature,
+        "",
+        "",
+        'if __name__ == "__main__":',
+        f"    run_class({class_name}, CASES)",
+        "",
+    ]
+    return "\n".join(out)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("problem_dir")
@@ -115,15 +137,16 @@ def main():
     spec = _load_spec(spec_path)
     if hasattr(spec, "STUBS"):
         content = _render_multi(spec.STUBS)
+    elif hasattr(spec, "CLASS_NAME"):
+        content = _render_class(spec.SIGNATURE, spec.CLASS_NAME)
     elif hasattr(spec, "SIGNATURE"):
         content = _render_single(spec.SIGNATURE)
     else:
-        sys.exit("_spec.py must define either STUBS (multi) or SIGNATURE (single)")
+        sys.exit("_spec.py must define STUBS (multi), CLASS_NAME (class), or SIGNATURE (single)")
 
     with open(sol_path, "w") as f:
         f.write(content)
     print(f"wrote {sol_path}")
-
 
 if __name__ == "__main__":
     main()

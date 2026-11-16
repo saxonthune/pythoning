@@ -25,6 +25,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(grid: list[list[str]]) -> int:"
 
+
 CASES = [
     # canonical example: L-shape + isolated cell
     ([["1","1","0"],["1","0","0"],["0","0","1"]], 2),

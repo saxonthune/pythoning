@@ -1,0 +1,48 @@
+  <header class="intro-header"><h3>Python Microgames</h3><a href="#config-editor" id="configuration-toggle" aria-expanded="false" aria-controls="config-editor">Configuration</a></header>
+  <p id="generic-instructions">Practice writing Python through short challenges. Write your solution, then submit it to run and check your answer.</p>
+  <div id="config-editor" hidden>
+    <fieldset id="config-fields">
+      <legend>Challenge Types Tree</legend>
+      <div id="challenge-types-tree"></div>
+      <div class="config-actions"><button id="save-config">Save</button><button id="config-next-round">New Round</button></div>
+      <p id="config-error" role="alert" hidden></p>
+    </fieldset>
+  </div>
+<style>
+  #config-editor { padding: .75rem var(--space-4); margin: .75rem 0 var(--space-6); background: var(--document); border: 1px solid var(--border); border-radius: var(--radius-control); }
+  [hidden] { display: none; }
+  .intro-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  h3 { margin: 0; font-size: 20px; font-weight: 600; }
+  #configuration-toggle { font-size: 14px; }
+  #generic-instructions { margin: .75rem 0 var(--space-6); }
+
+  fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+  legend { font-size: 14px; font-weight: 600; }
+  #challenge-types-tree :global(ul) { list-style: none; margin: 0; padding: 0; }
+  #challenge-types-tree :global(ul ul) { padding-left: 1.75rem; margin: .25rem 0 .75rem; }
+  #challenge-types-tree :global(label) { display: flex; align-items: center; gap: .6rem; padding: .3rem 0; cursor: pointer; }
+  #challenge-types-tree :global(.tree-row) { display: flex; align-items: center; gap: .5rem; }
+  #challenge-types-tree :global(.tree-row label) { min-width: 0; }
+  #challenge-types-tree :global(.tree-chevron) { border: 0; background: transparent; color: var(--muted); padding: .15rem; width: 1.2rem; flex-shrink: 0; line-height: 1; }
+  #challenge-types-tree :global(.try-now) { margin-left: auto; white-space: nowrap; font-size: 13px; padding-left: .75rem; }
+  #challenge-types-tree :global(.try-now[aria-disabled="true"]) { cursor: default; }
+  #challenge-types-tree :global([hidden]) { display: none; }
+  #challenge-types-tree :global(input) { accent-color: var(--accent); width: 1rem; height: 1rem; margin: 0; flex-shrink: 0; }
+  #challenge-types-tree :global(.group-children[aria-disabled="true"]) { opacity: .45; }
+  #challenge-types-tree :global(.group-children[aria-disabled="true"] label) { cursor: default; }
+  .config-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+  #config-error { margin-bottom: 0; color: var(--text); }
+</style>
+
+<script>
+  const toggle = document.querySelector<HTMLAnchorElement>('#configuration-toggle')!;
+  const panel = document.querySelector<HTMLElement>('#config-editor')!;
+  const blurb = document.querySelector<HTMLElement>('#generic-instructions')!;
+  toggle.addEventListener('click', event => {
+    event.preventDefault();
+    const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+    toggle.setAttribute('aria-expanded', String(expanded));
+    panel.hidden = !expanded;
+    blurb.hidden = expanded;
+  });
+</script>

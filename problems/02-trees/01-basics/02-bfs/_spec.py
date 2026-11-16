@@ -31,6 +31,7 @@ CONSTRAINTS = """
 
 SIGNATURE = "def solution(root: 'TreeNode | None') -> list[list[int]]:"
 
+
 CASES = [
     (build_tree([3, 9, 20, None, None, 15, 7]), [[3], [9, 20], [15, 7]]),
     (build_tree([1]),                            [[1]]),

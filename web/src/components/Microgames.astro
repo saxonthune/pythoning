@@ -1,0 +1,224 @@
+---
+import MicrogameEngineConfig from './MicrogameEngineConfig.astro';
+import MicrogameRound from './MicrogameRound.astro';
+import MicrogameResults from './MicrogameResults.astro';
+import MicrogameExecutionDetails from './MicrogameExecutionDetails.astro';
+---
+<section class="microgames">
+  <MicrogameEngineConfig />
+  <MicrogameRound />
+  <div class="editor-pane">
+    <div class="help-row" role="group" aria-label="Help">
+      <button id="line-hint">Line Hint</button>
+      <button id="hint-toggle" aria-pressed="false">Full Hint</button>
+      <button id="prefill-solution">Prefill Solution</button>
+    </div>
+    <div class="editor-title"><span>solution.py</span><div class="run-controls"><button id="check-round" class="btn-primary">Submit and Run</button><button id="stop-round" hidden>Stop</button></div></div>
+    <div id="micro-code"></div><MicrogameExecutionDetails />
+  </div>
+  <MicrogameResults />
+</section>
+<script>
+  import { EditorView } from 'codemirror';
+  import { EditorState, StateEffect, StateField, Prec, Compartment } from '@codemirror/state';
+  import { keymap, Decoration, WidgetType, GutterMarker, lineNumberWidgetMarker, lineNumbers, highlightActiveLineGutter, highlightActiveLine, highlightSpecialChars } from '@codemirror/view';
+  import { indentWithTab, history as editorHistory, defaultKeymap, historyKeymap } from '@codemirror/commands';
+  import { indentUnit, indentOnInput, bracketMatching } from '@codemirror/language';
+  import { editorHighlighting } from '../lib/editor-highlighting';
+  import { python } from '@codemirror/lang-python';
+
+  import { protectedCode, codeRegions, loadRegions, roundDocument } from '../lib/protected-code';
+  import { microgames, challengeTitle } from '../lib/microgames';
+  import { runMicrogame, stopRound } from '../lib/microgame-runner';
+  import { activeEntries, canonical, seeded, type Config, type RoundCode } from '../lib/microgame-config';
+  import { readMicrogameUrl, roundUrl } from '../lib/microgame-route';
+  import { mountConfigEditor } from '../lib/microgame-config-editor';
+  const hint = document.querySelector<HTMLButtonElement>('#hint-toggle')!;
+  let hintOn = false;
+  let hintedLine: number | null = null;
+  let answer = '';
+  const editing = new Compartment();
+  let completed = false;
+  let running = false;
+  const resultPanel = document.querySelector<HTMLElement>('#round-results')!;
+  const resultLabel = document.querySelector<HTMLElement>('#result-label')!;
+  const skip = document.querySelector<HTMLAnchorElement>('#skip-challenge')!;
+  function setResult(state: 'idle' | 'running' | 'passed' | 'failed') {
+    completed = state === 'passed';
+    resultPanel.dataset.state = state;
+    resultLabel.textContent = completed ? 'Success! 🎉' : 'Challenge Incomplete.';
+    document.querySelector<HTMLButtonElement>('#next-round')!.disabled = !completed;
+    skip.hidden = completed;
+    skip.setAttribute('aria-disabled', String(running));
+  }
+  const refresh = StateEffect.define<void>();
+  class Ghost extends WidgetType {
+    constructor(readonly text: string, readonly number: number = 0) { super(); }
+    eq(other: Ghost) { return this.text === other.text && this.number === other.number; }
+    toDOM() { const el = document.createElement(this.number ? 'div' : 'span'); el.textContent = this.text || '\u00a0'; el.className = 'typing-ghost'; el.setAttribute('aria-hidden','true'); return el; }
+    ignoreEvent() { return true; }
+  }
+  class GhostNumber extends GutterMarker {
+    constructor(readonly number: number) { super(); }
+    toDOM() { const el = document.createElement('span'); el.textContent = String(this.number); el.className = 'ghost-number'; return el; }
+  }
+  const ghosts = StateField.define({
+    create: () => Decoration.none,
+    update: (_, tr) => {
+      if (hintedLine !== null && tr.state.doc.lineAt(tr.state.selection.main.head).number !== hintedLine) hintedLine = null;
+      if (!hintOn && hintedLine === null) return Decoration.none;
+      const doc = tr.state.doc;
+      const decorations = [];
+      for (const region of tr.state.field(codeRegions)) {
+        if (region.kind !== 'editable') continue;
+        const expected = region.solution!.split('\n');
+        const actual = doc.sliceString(region.from, region.to).split('\n');
+        let pos = region.from;
+        for (let index = 0; index < actual.length; index++) {
+          const target = expected[index];
+          const text = actual[index];
+          if ((hintOn || doc.lineAt(pos).number === hintedLine) && target?.startsWith(text) && text.length < target.length) {
+            decorations.push(Decoration.widget({widget: new Ghost(target.slice(text.length)), side: 1}).range(pos + text.length));
+          }
+          pos += text.length + 1;
+        }
+        for (let index = actual.length; hintOn && index < expected.length; index++) {
+          decorations.push(Decoration.widget({widget: new Ghost(expected[index], doc.lineAt(region.from).number + index), block: true, side: index + 1}).range(region.to));
+        }
+      }
+      return Decoration.set(decorations, true);
+    }, provide: f => EditorView.decorations.from(f),
+  });
+  const editorExtensions = [EditorView.contentAttributes.of({'aria-label': 'Python answer'}), protectedCode, ghosts, lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), highlightSpecialChars(), editorHistory(), indentOnInput(), bracketMatching(), keymap.of([...defaultKeymap, ...historyKeymap]), editing.of(EditorView.editable.of(true)), EditorView.updateListener.of(update => {if (update.docChanged && completed) setResult('idle');}), editorHighlighting, Prec.highest(EditorState.languageData.of(() => [{closeBrackets: {brackets: []}}])), python(), lineNumberWidgetMarker.of((_view, widget) => widget instanceof Ghost && widget.number ? new GhostNumber(widget.number) : null), EditorView.theme({
+    '&': {backgroundColor: 'var(--microgames-workspace)' , color: 'var(--editor-text)'},
+    '.cm-gutters': {minHeight: '300px',backgroundColor: 'var(--microgames-workspace)' , color: 'var(--editor-line-number)', borderRight: 'none'},
+    '.cm-activeLine, .cm-activeLineGutter': {backgroundColor: 'var(--editor-active-line)'},
+    '.cm-cursor': {borderLeftColor: 'var(--accent)'},
+    '.cm-tooltip': {backgroundColor: 'var(--editor-chrome)', color: 'var(--editor-text)', border: '1px solid var(--editor-border)'},
+    '.cm-tooltip-autocomplete > ul > li[aria-selected]': {backgroundColor: 'var(--btn-bg)', color: 'var(--btn-fg)'},
+    '.cm-tooltip-autocomplete > ul > li:hover': {backgroundColor: 'var(--editor-selection)', color: 'var(--editor-text)'},
+    '.cm-completionDetail, .cm-completionInfo': {color: 'var(--editor-text)'},
+    '.cm-completionMatchedText': {color: 'inherit', textDecoration: 'underline'},
+    '.cm-content ::selection, .cm-content::selection': {backgroundColor: 'var(--editor-selection)', color: 'var(--editor-text)'},
+  }), indentUnit.of('    '), keymap.of([indentWithTab, {key: 'Mod-Enter', run: () => { document.querySelector<HTMLButtonElement>('#check-round')!.click(); return true; }}]) ];
+  const code = new EditorView({parent: document.querySelector('#micro-code')!, state: EditorState.create({extensions: editorExtensions})});
+  const output = document.querySelector<HTMLElement>('#micro-output')!;
+  const executionStatus = document.querySelector<HTMLElement>('#execution-status')!;
+  const prefill = document.querySelector<HTMLButtonElement>('#prefill-solution')!;
+  prefill.addEventListener('click', () => {
+    if (running || !valid) return;
+    const changes = code.state.field(codeRegions).filter(r => r.kind === 'editable').map(r => ({from: r.from, to: r.to, insert: r.solution!}));
+    code.dispatch({changes});
+    code.focus();
+  });
+  const check = document.querySelector<HTMLButtonElement>('#check-round')!;
+  const next = document.querySelector<HTMLButtonElement>('#next-round')!;
+  let round: ReturnType<typeof microgames.classes.generate>;
+  let config: Config = canonical;
+  let roundCode: RoundCode;
+  let valid = true;
+  try {
+    const decoded = readMicrogameUrl(new URL(location.href));
+    config = decoded.config;
+    roundCode = decoded.round!;
+  } catch(e) {valid = false; output.textContent = String(e); check.disabled = next.disabled = true;}
+  const configNext = document.querySelector<HTMLButtonElement>('#config-next-round')!;
+  const configEditor = mountConfigEditor(config, saved => {
+    config = saved;
+    if (activeEntries(config).includes(roundCode.entry)) {
+      history.replaceState(null, '', roundUrl(config, roundCode));
+    } else generate();
+  });
+  if (!valid) {configNext.disabled = true; configEditor.setRunning(true); skip.hidden = true;}
+  function generate(existing?: RoundCode) {
+    const enabled = activeEntries(config);
+    const alternatives = enabled.filter(i => i !== roundCode?.entry);
+    const choices = alternatives.length ? alternatives : enabled;
+    const random = crypto.getRandomValues(new Uint32Array(2));
+    roundCode = existing ?? {version: 1, entry: choices[Math.floor(random[0] / 4294967296 * choices.length)], seed: random[1]};
+    const entry = config.games[roundCode.entry];
+    round = microgames[entry.type].generate(entry.mode, seeded(roundCode.seed));
+    answer = round.answer;
+    document.querySelector('#round-heading')!.textContent = challengeTitle(entry.type, entry.mode);
+    setResult('idle');
+    executionStatus.textContent = 'No executions yet.';
+    const prompt = document.querySelector('#micro-prompt')!;
+    // Only trusted formatting delimiters are recognized; all content stays text.
+    prompt.replaceChildren(...round.prompt.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map(part => {
+      const bold = part.startsWith('**');
+      const code = part.startsWith('`');
+      if (!bold && !code) return document.createTextNode(part);
+      const element = document.createElement(bold ? 'strong' : 'code');
+      element.textContent = part.slice(bold ? 2 : 1, bold ? -2 : -1);
+      return element;
+    }));
+    hintOn = false;
+    hint.setAttribute('aria-pressed', 'false');
+    hintedLine = null;
+    const initial = roundDocument(round.blocks);
+    const fresh = EditorState.create({doc: initial.doc, extensions: editorExtensions});
+    code.setState(fresh.update({effects: loadRegions.of(initial.regions), selection: {anchor: 0}}).state);
+    code.scrollDOM.scrollTop = 0;
+    code.scrollDOM.scrollLeft = 0;
+    output.textContent = '';
+    history.replaceState(null, '', roundUrl(config, roundCode));
+  }
+  next.addEventListener('click', () => {generate(); document.querySelector<HTMLElement>('#round-heading')!.focus();});
+  skip.addEventListener('click', e => {e.preventDefault(); if (!valid || running) return; generate(); document.querySelector<HTMLElement>('#round-heading')!.focus();});
+  configNext.addEventListener('click', () => generate());
+  hint.addEventListener('click', () => {hintOn = !hintOn; hint.setAttribute('aria-pressed', String(hintOn)); code.dispatch({effects: refresh.of()});});
+  document.querySelector<HTMLButtonElement>('#line-hint')!.addEventListener('click', () => {
+    const head = code.state.selection.main.head;
+    const editable = code.state.field(codeRegions).some(r => r.kind === 'editable' && head >= r.from && head <= r.to);
+    hintedLine = editable ? code.state.doc.lineAt(head).number : null;
+    code.dispatch({effects: refresh.of()});
+    code.focus();
+  });
+  const stop = document.querySelector<HTMLButtonElement>('#stop-round')!;
+  stop.addEventListener('click', stopRound);
+  check.addEventListener('click', async () => {
+    running = true; setResult('running');
+    check.hidden = true; stop.hidden = false;
+    code.dispatch({effects: editing.reconfigure(EditorView.editable.of(false))});
+    configEditor.setRunning(true); configNext.disabled = true;
+    prefill.disabled = check.disabled = next.disabled = true;
+    executionStatus.textContent = 'Running…';
+    output.textContent = '';
+    try { output.textContent = (await runMicrogame(round.spec, code.state.doc.toString())) || ''; executionStatus.textContent = 'Execution succeeded'; setResult('passed'); }
+    catch (error) { executionStatus.textContent = 'Execution failure'; output.textContent = String(error); setResult('failed'); }
+    finally { running = false; skip.setAttribute('aria-disabled', 'false'); code.dispatch({effects: editing.reconfigure(EditorView.editable.of(true))}); configEditor.setRunning(false); configNext.disabled = false; check.hidden = false; stop.hidden = true; prefill.disabled = check.disabled = false; }
+  });
+  if(valid) generate(roundCode!);
+</script>
+<style>
+  .microgames { margin: 1.75rem 0 3rem; }
+  .microgames :global(select), .microgames :global(button) { font: inherit; color: var(--control-text); border: 1px solid var(--border); border-radius: 6px; padding: .6rem .85rem; }
+  .microgames :global(button) { background: var(--surface); cursor: pointer; font-size: 14px; font-weight: 600; }
+  .microgames :global(button:hover:not(:disabled)), .microgames :global(button[aria-pressed="true"]) { background: var(--document); border-color: var(--accent); }
+  .microgames :global(button:focus-visible), .microgames :global(select:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .microgames :global(button:disabled) { opacity: .5; cursor: default; }
+  .editor-pane { margin: .5rem 0 1rem; overflow: hidden; border: 1px solid var(--editor-border); border-radius: 8px; background: var(--microgames-workspace); }
+  .editor-title { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: 0 .6rem 0 1rem; background: var(--document); border-bottom: 1px solid var(--editor-border); }
+  .editor-title > span { position: relative; align-self: flex-end; padding: .7rem .9rem .6rem; margin-top: .3rem; margin-bottom: -1px; background: var(--microgames-workspace); border: 1px solid var(--editor-border); border-bottom-color: var(--microgames-workspace); border-radius: 8px 8px 0 0; color: var(--editor-text); font: 600 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; z-index: 1; }
+  .editor-title > span::before, .editor-title > span::after { content: ''; position: absolute; bottom: -1px; width: 9px; height: 9px; background: transparent; pointer-events: none; }
+  .editor-title > span::before { right: 100%; border-right: 1px solid var(--editor-border); border-bottom: 1px solid var(--editor-border); border-bottom-right-radius: 9px; box-shadow: 3px 3px 0 2px var(--microgames-workspace); }
+  .editor-title > span::after { left: 100%; border-left: 1px solid var(--editor-border); border-bottom: 1px solid var(--editor-border); border-bottom-left-radius: 9px; box-shadow: -3px 3px 0 2px var(--microgames-workspace); }
+  .microgames :global(.cm-editor) { min-height: 300px; font-size: 15px; }
+  .microgames :global(.cm-scroller) { min-height: 300px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; line-height: 1.6; }
+  .microgames :global(.cm-lineNumbers .cm-gutterElement) { min-width: 3ch; padding-inline: 12px; }
+  .microgames :global(.cm-fixed-code), .microgames :global(.cm-fixed-code-gutter) { background: var(--document); }
+  .microgames :global(.cm-fixed-code.cm-activeLine), .microgames :global(.cm-fixed-code-gutter.cm-activeLineGutter) { background: var(--editor-active-line); }
+  .microgames :global(.cm-content) { padding-block: 12px; }
+  .microgames :global(.cm-gutters) { padding-right: 0; min-height: 300px !important; align-self: stretch; }
+  .microgames :global(.typing-ghost) { color: var(--editor-hint); pointer-events: none; white-space: pre; }
+  .microgames :global(div.typing-ghost) { padding-left: 6px; line-height: 1.6; }
+  .microgames :global(.ghost-number) { color: var(--editor-line-number); }
+  .help-row { display: flex; flex-wrap: wrap; gap: .5rem; padding: .6rem; background: var(--document); border-bottom: 1px solid var(--editor-border); }
+  .help-row button, .run-controls button { padding: .4rem .65rem; }
+  .run-controls { display: grid; margin-block: .3rem; }
+  #check-round, #stop-round { grid-area: 1 / 1; min-width: 132px; }
+  @media (max-width: 400px) { .help-row { gap: .35rem; } .help-row button { font-size: 12px; padding: .4rem .5rem; } }
+  .run-controls button[hidden] { display: none; }
+  #check-round { background: var(--btn-bg); border-color: var(--btn-border); color: var(--btn-fg); }
+  #check-round:hover:not(:disabled) { background: var(--btn-bg-hover); }
+</style>

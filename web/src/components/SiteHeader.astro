@@ -1,0 +1,28 @@
+---
+interface Props { selected?: 'problems' | 'microgames' }
+const { selected } = Astro.props;
+const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+---
+<header class="site-header">
+  <a class="brand" href={base}>Pythoning</a>
+  <nav aria-label="Main Navigation">
+    <a href={base} aria-current={selected === 'problems' ? 'page' : undefined}>Problems</a>
+    <a href={`${base}microgames/`} aria-current={selected === 'microgames' ? 'page' : undefined}>Microgames</a>
+  </nav>
+  <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme">☾</button>
+</header>
+<script>
+  import { attachThemeToggle } from '../lib/theme';
+  attachThemeToggle('theme-toggle');
+</script>
+<style>
+  .site-header { display: flex; align-items: center; gap: clamp(.8rem, 3vw, 2rem); padding: .65rem 1rem; background: var(--article-bg); border: var(--outer-border-width) solid var(--outer-border); border-radius: var(--radius-panel); margin-bottom: 1.5rem; }
+  .brand { font-weight: 600; font-size: 21px; color: var(--text); }
+  nav { display: flex; gap: clamp(.7rem, 2vw, 1.5rem); align-self: stretch; }
+  nav a { display: flex; align-items: center; padding: .4rem 0; border-bottom: 2px solid transparent; color: var(--muted); }
+  nav a[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent); }
+  a:hover { text-decoration: none; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  button { margin-left: auto; flex-shrink: 0; }
+  @media (max-width: 430px) { .site-header { flex-wrap: wrap; gap: .5rem 1rem; } nav { order: 3; width: 100%; } }
+</style>

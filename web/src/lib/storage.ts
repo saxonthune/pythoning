@@ -1,61 +1,62 @@
 const SOL_PREFIX = 'solution:';
-const HASH_PREFIX = 'skeleton_hash:';
+// No longer written. Older builds stored a skeleton hash here to drive a
+// "skeleton changed" banner; clearing still removes it so old keys drain away.
+const LEGACY_HASH_PREFIX = 'skeleton_hash:';
 
-async function sha1(s: string): Promise<string> {
-  const buf = new TextEncoder().encode(s);
-  const digest = await crypto.subtle.digest('SHA-1', buf);
-  return [...new Uint8Array(digest)]
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+// localStorage can throw (private mode, blocked cookies) or be absent during SSR;
+// every access is guarded so a failure just falls back to the skeleton.
+export function loadSolution(id: string, skeleton: string): string {
+  try {
+    return localStorage.getItem(SOL_PREFIX + id) ?? skeleton;
+  } catch {
+    return skeleton;
+  }
 }
 
-export async function loadSolution(
+export function saveSolution(
   id: string,
+  code: string,
   skeleton: string,
-): Promise<{ code: string; skeletonChanged: boolean }> {
-  const saved = localStorage.getItem(SOL_PREFIX + id);
-  if (saved == null) {
-    return { code: skeleton, skeletonChanged: false };
+): void {
+  const key = id;
+  try {
+    // Don't persist an untouched skeleton (trailing whitespace aside) — keeps
+    // storage clean so an editor holding only the skeleton leaves no trace.
+    if (code.trimEnd() === skeleton.trimEnd()) {
+      localStorage.removeItem(SOL_PREFIX + key);
+      localStorage.removeItem(LEGACY_HASH_PREFIX + key);
+      return;
+    }
+    localStorage.setItem(SOL_PREFIX + key, code);
+  } catch {
+    /* storage unavailable — nothing to persist */
   }
-  // If the saved code is byte-identical to the current skeleton, there's
-  // nothing for the user to lose — treat as unchanged regardless of hash.
-  if (saved === skeleton) {
-    return { code: saved, skeletonChanged: false };
-  }
-  const savedHash = localStorage.getItem(HASH_PREFIX + id);
-  if (savedHash == null) {
-    return { code: saved, skeletonChanged: false };
-  }
-  const currentHash = await sha1(skeleton);
-  return { code: saved, skeletonChanged: savedHash !== currentHash };
-}
-
-export async function saveSolution(id: string, code: string, skeleton: string): Promise<void> {
-  // Don't persist an untouched skeleton — keeps localStorage clean and
-  // prevents stale skeleton_hash entries from raising false "changed" alarms.
-  if (code === skeleton) {
-    clearSolution(id);
-    return;
-  }
-  localStorage.setItem(SOL_PREFIX + id, code);
-  localStorage.setItem(HASH_PREFIX + id, await sha1(skeleton));
 }
 
 export function clearSolution(id: string): void {
-  localStorage.removeItem(SOL_PREFIX + id);
-  localStorage.removeItem(HASH_PREFIX + id);
+  const key = id;
+  try {
+    localStorage.removeItem(SOL_PREFIX + key);
+    localStorage.removeItem(LEGACY_HASH_PREFIX + key);
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 export function clearAllSolutions(): number {
-  const keys: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && (k.startsWith(SOL_PREFIX) || k.startsWith(HASH_PREFIX))) {
-      keys.push(k);
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith(SOL_PREFIX) || k.startsWith(LEGACY_HASH_PREFIX))) {
+        keys.push(k);
+      }
     }
+    keys.forEach((k) => localStorage.removeItem(k));
+    return keys.length;
+  } catch {
+    return 0;
   }
-  keys.forEach((k) => localStorage.removeItem(k));
-  return keys.length;
 }
 
 export function debounce<A extends unknown[]>(

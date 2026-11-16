@@ -26,3 +26,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy web/dist --project-name=python-interview-prep --branch=main
+      - name: Verify production routes and version
+        run: node web/tests/production-routes.mjs https://pythoning.saxon.zone
